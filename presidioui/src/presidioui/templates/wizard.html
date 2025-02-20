@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">Rule Creation Wizard</h2>
+        <a href="{{ url_for('admin.index') }}"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+            Back
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-[80vh]">
+        <!-- Chat messages container -->
+        <div id="chatContainer" class="space-y-4 mb-6 flex-grow overflow-y-auto"></div>
+
+        <!-- Input Area -->
+        <div class="border-t pt-4 mt-auto" id="inputArea">
+            <div class="flex gap-4 items-start">
+                <textarea id="userInput"
+                    class="flex-grow rounded-lg px-4 py-2 border focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none min-h-[42px] max-h-[200px] overflow-y-auto"
+                    placeholder="Type your message..." rows="1"></textarea>
+                <button id="sendButton"
+                    class="bg-indigo-600 text-white rounded-lg px-6 h-[42px] hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0">
+                    Send
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Area (hidden initially) -->
+        <div id="resultsArea" class="mt-6 hidden">
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Generated Rule and Test Cases</h3>
+
+                <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Rule Explanation:</h4>
+                    <div class="p-3 bg-gray-50 rounded-md text-sm text-gray-800" id="ruleExplanation"></div>
+                </div>
+
+                <!-- <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Regex Pattern:</h4>
+                    <code class="block p-3 bg-gray-50 rounded-md text-sm" id="generatedRule"></code>
+                </div> -->
+
+                <div>
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Test Cases and Results</h4>
+                    <div class="bg-gray-50 rounded-md overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Sample Text</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Should Trigger</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Actually Triggered</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Result</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Explanation</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200" id="testResultsBody">
+                                <!-- Test results will be added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-2 text-sm text-gray-600" id="testSummary"></div>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3 pb-4">
+                    <button id="startOverButton"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Start Over
+                    </button>
+                    <button id="saveRuleButton"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                        Save Rule
+                    </button>
+                    <a href="{{ url_for('admin.index') }}"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const resultsArea = document.getElementById('resultsArea');
+        const inputArea = document.getElementById('inputArea');
+        const startOverButton = document.getElementById('startOverButton');
+        const saveRuleButton = document.getElementById('saveRuleButton');
+        let generatedRule = null;
+        let generatedTestCases = null;
+        let ruleExplanation = null;
+        let ruleName = null;
+        let messages = [];
+
+        function addMessage(role, content) {
+            // Only add message if it has content
+            if (!content.trim()) return;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = role === 'user' ? 'message user-message' : 'message bot-message';
+
+            const avatar = role === 'user' ? 'You' : 'AI';
+            const avatarBg = role === 'user' ? 'bg-gray-200' : 'bg-indigo-600';
+
+            msgDiv.innerHTML = `
+                <div class="flex items-start ${role === 'user' ? 'flex-row-reverse' : ''}">
+                    <div class="flex-shrink-0">
+                        <div class="h-8 w-8 rounded-full ${avatarBg} flex items-center justify-center">
+                            <span class="${role === 'user' ? 'text-gray-600' : 'text-white'} text-sm">${avatar}</span>
+                        </div>
+                    </div>
+                    <div class="${role === 'user' ? 'mr-3' : 'ml-3'}">
+                        <p class="${role === 'user' ? 'text-white' : 'text-gray-900'} whitespace-pre-wrap">${content}</p>
+                    </div>
+                </div>`;
+
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendMessage(content, isInitial = false) {
+            // Only add to messages and display if not initial message
+            if (!isInitial) {
+                messages.push({ role: 'user', content });
+                addMessage('user', content);
+            }
+            userInput.value = '';
+
+            let loadingTimeout;
+            let loadingDiv;
+
+            try {
+                // Create loading spinner with 300ms delay
+                loadingTimeout = setTimeout(() => {
+                    loadingDiv = document.createElement('div');
+                    loadingDiv.className = 'message bot-message loading-message';
+                    loadingDiv.innerHTML = `
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
+                                    <span class="text-white text-sm">AI</span>
+                                </div>
+                            </div>
+                            <div class="ml-3 flex items-center">
+                                <div class="animate-spin h-5 w-5 mr-2">
+                                    <svg class="text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-gray-700">Thinking...</span>
+                            </div>
+                        </div>`;
+                    chatContainer.appendChild(loadingDiv);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 300);
+
+                const response = await fetch('/admin/wizard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ messages })
+                });
+
+                const data = await response.json();
+
+                // Clear timeout and remove loading spinner if it exists
+                clearTimeout(loadingTimeout);
+                if (loadingDiv && loadingDiv.parentNode) {
+                    loadingDiv.remove();
+                }
+
+                // Update messages array with all messages from server
+                messages = data.messages;
+
+                // Add the new system message
+                const lastMessage = data.messages[data.messages.length - 1];
+                addMessage(lastMessage.role, lastMessage.content);
+
+                if (data.is_done) {
+                    // Store the generated rule, test cases, and explanation
+                    generatedRule = data.rule;
+                    generatedTestCases = data.test_cases;
+                    ruleExplanation = data.explanation;
+                    ruleName = data.name;
+                    // Show results
+                    document.getElementById('ruleExplanation').textContent = ruleExplanation || 'No explanation available';
+
+                    // Show test results
+                    const testResultsBody = document.getElementById('testResultsBody');
+                    testResultsBody.innerHTML = '';
+
+                    data.test_results.results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="px-4 py-2 text-sm whitespace-normal">${result.text}</td>
+                            <td class="px-4 py-2 text-sm">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    ${result.should_trigger ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                    ${result.should_trigger ? 'Yes' : 'No'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 text-sm">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    ${result.actually_triggered ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                    ${result.actually_triggered ? 'Yes' : 'No'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 text-sm">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    ${result.passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${result.passed ? 'PASS' : 'FAIL'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 text-sm text-gray-600 whitespace-normal">${result.explanation || ''}</td>
+                        `;
+                        testResultsBody.appendChild(row);
+                    });
+
+                    // Show summary
+                    const testSummary = document.getElementById('testSummary');
+                    testSummary.innerHTML = `
+                        Passed ${data.test_results.passed}/${data.test_results.total} tests 
+                        (${data.test_results.pass_percentage.toFixed(1)}%)
+                    `;
+
+                    // If any tests failed, add a warning
+                    if (data.test_results.passed < data.test_results.total) {
+                        testSummary.innerHTML += `
+                            <div class="mt-2 text-yellow-700 bg-yellow-50 p-3 rounded-md">
+                                Some tests failed. You might want to:
+                                <ul class="list-disc ml-5 mt-1">
+                                    <li>Review the failed test cases</li>
+                                    <li>Start over to create a different rule</li>
+                                    <li>Save the rule and use the "Improve" feature later</li>
+                                </ul>
+                            </div>
+                        `;
+                    }
+
+                    resultsArea.classList.remove('hidden');
+                    inputArea.classList.add('hidden');
+                }
+            } catch (error) {
+                // Clear timeout and remove loading spinner if it exists
+                clearTimeout(loadingTimeout);
+                if (loadingDiv && loadingDiv.parentNode) {
+                    loadingDiv.remove();
+                }
+
+                console.error('Error:', error);
+                addMessage('system', 'An error occurred. Please try again.');
+            }
+        }
+
+        // Initial message - pass true to indicate it's the initial message
+        sendMessage('', true);
+
+        // Add event listeners
+        sendButton.addEventListener('click', () => {
+            const content = userInput.value.trim();
+            if (content) {
+                sendMessage(content);
+            }
+        });
+
+        // Add auto-resize functionality to textarea
+        userInput.addEventListener('input', function () {
+            // Reset height to auto to get the right scrollHeight
+            this.style.height = 'auto';
+            // Set new height based on scrollHeight
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                // Only send if Enter is pressed without Shift
+                if (!e.shiftKey) {
+                    e.preventDefault(); // Prevent default newline
+                    const content = userInput.value.trim();
+                    if (content) {
+                        sendMessage(content);
+                        // Reset height after sending
+                        userInput.style.height = 'auto';
+                    }
+                }
+            }
+        });
+
+        async function saveRule() {
+            try {
+                const response = await fetch('/admin/api/rules/save-from-wizard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: ruleName,
+                        pattern: generatedRule,
+                        explanation: ruleExplanation,
+                        test_cases: generatedTestCases
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = '{{ url_for("admin.index") }}';
+                } else {
+                    alert('Failed to save rule');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to save rule');
+            }
+        }
+
+        // Add save button handler
+        saveRuleButton.addEventListener('click', saveRule);
+
+        // Update start over to reset the stored rule and test cases, and clear the explanation
+        startOverButton.addEventListener('click', () => {
+            messages = [];
+            chatContainer.innerHTML = '';
+            resultsArea.classList.add('hidden');
+            inputArea.classList.remove('hidden');
+            generatedRule = null;
+            generatedTestCases = null;
+            ruleExplanation = null;
+            ruleName = null;
+            sendMessage('', true);
+        });
+    });
+
+    // Add styles for message bubbles
+    const style = document.createElement('style');
+    style.textContent = `
+        .message {
+            margin: 8px;
+            padding: 12px;
+            border-radius: 20px;
+        }
+        .bot-message {
+            background-color: #e9ecef;
+            margin-right: auto;
+            border-top-left-radius: 4px;
+            max-width: 70%;
+        }
+        .user-message {
+            background-color: #4f46e5;
+            color: white;
+            margin-left: auto;
+            border-top-right-radius: 4px;
+            width: fit-content;
+            max-width: 70%;
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SanitAI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-white shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <a href="{{ url_for('admin.index') }}" class="text-xl font-bold text-indigo-600">
+                            SanitAI
+                        </a>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex">
+                        <a href="{{ url_for('admin.index') }}"
+                            class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900">Home</a>
+                        <a href="{{ url_for('admin.playground') }}"
+                            class="inline-flex items-center px-1 pt-1 ml-8 text-sm font-medium text-gray-900">Playground</a>
+                    </div>
+                </div>
+                <div class="hidden sm:flex sm:items-center sm:space-x-8">
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('admin.logout') }}"
+                        class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-700">Logout</a>
+                    {% else %}
+                    <a href="{{ url_for('admin.login') }}"
+                        class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-700">Login</a>
+                    <a href="{{ url_for('admin.register') }}"
+                        class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-700">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="container mx-auto px-4 mt-4 mb-4">
+            {% for message in messages %}
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">{{ message }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>

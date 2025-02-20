@@ -1,0 +1,42 @@
+{
+  "rule": "\\(\\d{3}\\) \\d{3}-\\d{4}",
+  "name": "US-NUMBER",
+  "test_cases": [
+    {
+      "text": "(123) 456-7890",
+      "explanation": "This is an exact match for the required format, so it will trigger an alert.",
+      "should_trigger_alert": true
+    },
+    {
+      "text": "(987) 654-3210",
+      "explanation": "This is also an exact match for the required format, so it will trigger an alert.",
+      "should_trigger_alert": true
+    },
+    {
+      "text": "123-456-7890",
+      "explanation": "This format does not match the required format (123) 456-7890, so it will not trigger an alert.",
+      "should_trigger_alert": false
+    },
+    {
+      "text": "(123)456-7890",
+      "explanation": "There is no space after the closing parenthesis, so it does not match the required format exactly, hence it will not trigger an alert.",
+      "should_trigger_alert": false
+    },
+    {
+      "text": "Call me at (123) 456-7890.",
+      "explanation": "Even though it contains the exact match, it has extra characters before and after, but the alert will trigger since a valid match is present.",
+      "should_trigger_alert": true
+    },
+    {
+      "text": "(123) 456 7890",
+      "explanation": "This format has no hyphen between the local number parts, so it does not match the required format exactly, so it will not trigger an alert.",
+      "should_trigger_alert": false
+    },
+    {
+      "text": "'My number is (123) 456-7890.'",
+      "explanation": "The number is in the correct format, despite the additional text, so it will trigger an alert.",
+      "should_trigger_alert": true
+    }
+  ],
+  "explanation": "This regex pattern detects US phone numbers in the exact format of (123) 456-7890, where '123' is the area code and '456-7890' is the local number."
+}

@@ -1,0 +1,21 @@
+--prefer-binary spacy==3.8.4 
+Flask==3.1.0
+Flask-Login==0.6.3
+flask-sock==0.7.0
+gunicorn==23.0.0
+SQLAlchemy==2.0.38
+Werkzeug==3.1.3
+openai==1.63.2
+click==8.1.8
+pydantic==2.10.6
+structlog==25.1.0
+rich==13.9.4
+presidio_analyzer==2.2.357
+presidio_anonymizer==2.2.357
+Jinja2==3.1.5
+
+
+# proxy
+fastapi==0.115.8
+uvicorn==0.34.0
+httpx==0.28.1

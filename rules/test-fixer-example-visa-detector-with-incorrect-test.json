@@ -1,0 +1,62 @@
+{
+    "rule": "\\s*(?:4\\d{14}1|4\\d{3}([- ])\\d{4}\\1\\d{4}\\1\\d{3}1)\\s*",
+    "explanation": "This regex pattern detects Visa card numbers that start with a 4, consist of 16 digits in total, and allow for spaces or dashes as separators. Leading and trailing whitespace is also accounted for.",
+    "name": "TEST-VISA-CARD-INCORRECT-TEST",
+    "test_cases": [
+        {
+            "text": "  4111 1111 1111 1111  ",
+            "should_trigger_alert": true,
+            "explanation": "Valid Visa card number with spaces that should trigger an alert."
+        },
+        {
+            "text": "4111-1111-1111-1111",
+            "should_trigger_alert": true,
+            "explanation": "Valid Visa card number with dashes that should trigger an alert."
+        },
+        {
+            "text": "4111111111111111",
+            "should_trigger_alert": true,
+            "explanation": "Valid Visa card number without spaces or dashes that should trigger an alert."
+        },
+        {
+            "text": "  4111 1111 1111 1111",
+            "should_trigger_alert": true,
+            "explanation": "Valid Visa card number with leading spaces that should trigger an alert."
+        },
+        {
+            "text": "4111 1111 1111 1112",
+            "should_trigger_alert": false,
+            "explanation": "Valid format but invalid Visa card number (last digit changes), should not trigger an alert."
+        },
+        {
+            "text": "4111 1111 1111 ",
+            "should_trigger_alert": false,
+            "explanation": "Invalid card number (only 15 digits), should not trigger an alert."
+        },
+        {
+            "text": "4 111 1111 1111 1111",
+            "should_trigger_alert": false,
+            "explanation": "Invalid format due to spaces, should not trigger an alert."
+        },
+        {
+            "text": " 4111-1111-1111-1111 ",
+            "should_trigger_alert": true,
+            "explanation": "Valid Visa card number with spaces around it that should trigger an alert."
+        },
+        {
+            "text": "xyz 4111-1111-1111-1111 abc",
+            "should_trigger_alert": true,
+            "explanation": "Valid Visa card number within other text, should trigger an alert."
+        },
+        {
+            "text": "0000 0000 0000 0000",
+            "should_trigger_alert": false,
+            "explanation": "Invalid Visa card number (does not start with 4), should not trigger an alert."
+        },
+        {
+            "text": "4111-1111-1111-1111",
+            "should_trigger_alert": false,
+            "explanation": "Invalid Visa card number (does not start with 4), should not trigger an alert."
+        }
+    ]
+}

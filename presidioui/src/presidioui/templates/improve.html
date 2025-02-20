@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">Rule Improver</h2>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-[80vh]">
+        <!-- Chat messages container -->
+        <div id="messages" class="space-y-4 mb-6 flex-grow overflow-y-auto"></div>
+
+        <!-- Status container -->
+        <div id="status" class="mb-4"></div>
+
+        <!-- Chat input -->
+        <div class="border-t pt-4 mt-auto">
+            <div class="flex gap-4">
+                <input id="input" type="text"
+                    class="flex-grow rounded-lg px-4 py-2 border focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Type your message..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()" id="sendButton"
+                    class="bg-indigo-600 text-white rounded-lg px-6 py-2 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ruleId = {{ rule_id }};
+    const ws = new WebSocket(`ws://${window.location.host}/improve/ws/${ruleId}`);
+    const messagesDiv = document.getElementById('messages');
+    const statusDiv = document.getElementById('status');
+    const inputField = document.getElementById('input');
+    const sendButton = document.getElementById('sendButton');
+
+    function addMessage(content, isUser = false) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = isUser ? 'message user-message' : 'message bot-message';
+
+        const avatar = isUser ? 'You' : 'AI';
+        const avatarBg = isUser ? 'bg-gray-200' : 'bg-indigo-600';
+
+        msgDiv.innerHTML = `
+            <div class="flex items-start ${isUser ? 'flex-row-reverse' : ''}">
+                <div class="flex-shrink-0">
+                    <div class="h-8 w-8 rounded-full ${avatarBg} flex items-center justify-center">
+                        <span class="${isUser ? 'text-gray-600' : 'text-white'} text-sm">${avatar}</span>
+                    </div>
+                </div>
+                <div class="${isUser ? 'mr-3' : 'ml-3'}">
+                    <p class="${isUser ? 'text-white' : 'text-gray-900'} whitespace-pre-wrap">${content}</p>
+                </div>
+            </div>`;
+
+        messagesDiv.appendChild(msgDiv);
+        scrollToBottom();
+    }
+
+    function scrollToBottom() {
+        // Use requestAnimationFrame to ensure DOM updates are complete
+        requestAnimationFrame(() => {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+    }
+
+    function sendMessage() {
+        const message = inputField.value.trim();
+        if (message) {
+            // Add user message to chat
+            addMessage(message, true);
+
+            // Send to WebSocket
+            ws.send(JSON.stringify({ data: message }));
+
+            // Clear input but don't disable - keep conversation flowing
+            inputField.value = '';
+            inputField.focus();
+        }
+    }
+
+    ws.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+
+        if (data.error) {
+            statusDiv.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                    ${data.error}
+                </div>`;
+            return;
+        }
+
+        if (data.data) {
+            // Handle different types of messages
+            if (data.data.type === 'loading') {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'message bot-message loading-message';
+                loadingDiv.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
+                                <span class="text-white text-sm">AI</span>
+                            </div>
+                        </div>
+                        <div class="ml-3 flex items-center">
+                            <div class="animate-spin h-5 w-5 mr-2">
+                                <svg class="text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">Thinking...</span>
+                        </div>
+                    </div>`;
+
+                // Remove any existing loading messages
+                const existingLoading = messagesDiv.querySelector('.loading-message');
+                if (existingLoading) {
+                    existingLoading.remove();
+                }
+
+                messagesDiv.appendChild(loadingDiv);
+                scrollToBottom();
+            } else if (data.data.type === 'text') {
+                // Remove loading message if it exists
+                const loadingMessage = messagesDiv.querySelector('.loading-message');
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+                addMessage(data.data.content);
+                inputField.focus();
+            } else if (data.data.type === 'markdown') {
+                // Remove loading message if it exists
+                const loadingMessage = messagesDiv.querySelector('.loading-message');
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+                const markdownWrapper = document.createElement('div');
+                markdownWrapper.className = 'message bot-message';
+
+                const markdownContent = document.createElement('div');
+                markdownContent.className = 'markdown-content ml-11';
+                // Use a markdown library like marked.js to render markdown
+                markdownContent.innerHTML = marked.parse(data.data.content);
+
+                markdownWrapper.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
+                                <span class="text-white text-sm">AI</span>
+                            </div>
+                        </div>
+                    </div>`;
+                markdownWrapper.appendChild(markdownContent);
+                messagesDiv.appendChild(markdownWrapper);
+                scrollToBottom();
+            } else if (data.data.type === 'table') {
+                // Remove loading message if it exists
+                const loadingMessage = messagesDiv.querySelector('.loading-message');
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+                const tableWrapper = document.createElement('div');
+                tableWrapper.className = 'bg-gray-100 rounded-lg p-4';
+
+                const tableHeader = document.createElement('div');
+                tableHeader.className = 'flex items-start mb-3';
+                tableHeader.innerHTML = `
+                    <div class="flex-shrink-0">
+                        <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
+                            <span class="text-white text-sm">AI</span>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-lg font-medium text-gray-900">${data.data.title}</h3>
+                    </div>`;
+
+                const table = createTable(data.data);
+                tableWrapper.appendChild(tableHeader);
+                tableWrapper.appendChild(table);
+                messagesDiv.appendChild(tableWrapper);
+                scrollToBottom();
+            }
+        }
+
+        if (data.success) {
+            statusDiv.innerHTML = `
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+                    <strong class="font-bold">Success!</strong>
+                    <p class="block sm:inline">Rule improved successfully!</p>
+                </div>`;
+
+            // Disable input and button instead of redirecting
+            inputField.disabled = true;
+            inputField.placeholder = "Improvement completed";
+            sendButton.disabled = true;
+        }
+    };
+
+    function createTable(tableData) {
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'ml-11 overflow-x-auto';
+
+        const tableScrollContainer = document.createElement('div');
+        tableScrollContainer.className = 'max-h-[500px] overflow-y-auto';
+
+        const table = document.createElement('table');
+        table.className = 'min-w-full divide-y divide-gray-200';
+
+        // Add header
+        const thead = document.createElement('thead');
+        thead.className = 'bg-gray-50 sticky top-0';
+        const headerRow = document.createElement('tr');
+        tableData.columns.forEach(col => {
+            const th = document.createElement('th');
+            th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+            th.textContent = col;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Add rows
+        const tbody = document.createElement('tbody');
+        tbody.className = 'bg-white divide-y divide-gray-200';
+        tableData.rows.forEach((row, i) => {
+            const tr = document.createElement('tr');
+            tr.className = i % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+
+            tableData.columns.forEach(col => {
+                const td = document.createElement('td');
+                td.className = 'px-6 py-4 text-sm text-gray-900 max-w-[400px] break-words';
+
+                // Get the value, checking both original and lowercase keys
+                let value = row[col];
+                if (value === undefined) {
+                    // Try lowercase version of the column name
+                    value = row[col.toLowerCase()];
+                }
+                // Set empty values to an empty string
+                value = value ?? '';
+
+                // Format special values based on column name and value type
+                if (typeof value === 'boolean') {
+                    value = value ?
+                        '<span class="text-green-600 text-lg">✓</span>' :
+                        '<span class="text-red-600 text-lg">✗</span>';
+                } else if (col === 'Result' && typeof value === 'string') {
+                    if (value.toLowerCase() === 'pass') {
+                        value = '<span class="text-green-600">✓ PASS</span>';
+                    } else if (value.toLowerCase() === 'fail') {
+                        value = '<span class="text-red-600">✗ FAIL</span>';
+                    }
+                }
+
+                td.innerHTML = value;
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+
+        tableScrollContainer.appendChild(table);
+        tableContainer.appendChild(tableScrollContainer);
+        return tableContainer;
+    }
+
+    // Add styles for message bubbles
+    const style = document.createElement('style');
+    style.textContent = `
+        .message {
+            margin: 8px;
+            padding: 12px;
+            border-radius: 20px;
+        }
+        .bot-message {
+            background-color: #e9ecef;
+            margin-right: auto;
+            border-top-left-radius: 4px;
+            max-width: 70%;
+        }
+        .user-message {
+            background-color: #4f46e5;
+            color: white;
+            margin-left: auto;
+            border-top-right-radius: 4px;
+            width: fit-content;
+            max-width: 70%;
+        }
+        .markdown-content {
+            font-size: 0.875rem; /* 14px to match table cell size */
+            line-height: 1.6;
+            margin-top: -8px; /* Remove top whitespace */
+        }
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3 {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+            font-size: 1.125rem; /* 18px to match table header size */
+            line-height: 1.75rem;
+        }
+        .markdown-content p {
+            margin-bottom: 1em;
+            font-size: 0.875rem; /* 14px to match table cell size */
+        }
+        .markdown-content code {
+            background-color: #f3f4f6;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .markdown-content pre {
+            background-color: #f3f4f6;
+            padding: 1em;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+        .markdown-content ul,
+        .markdown-content ol {
+            padding-left: 2em;
+            margin-bottom: 1em;
+            font-size: 0.875rem; /* 14px to match table cell size */
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Remove loading message when WebSocket connects
+    ws.onopen = function () {
+        statusDiv.innerHTML = '';
+        inputField.focus();
+    };
+</script>
+{% endblock %}

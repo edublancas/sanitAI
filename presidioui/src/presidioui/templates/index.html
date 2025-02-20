@@ -1,0 +1,797 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">PII Detection Rules</h2>
+        <div class="flex items-center space-x-4">
+            <a href="{{ url_for('admin.wizard') }}"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                Add New Rule
+            </a>
+            <button id="restartBtn"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Restart Server
+            </button>
+            <button id="settingsBtn"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Settings
+            </button>
+        </div>
+    </div>
+
+    <!-- Add this right after the opening body tag in the template -->
+    <div id="confirmationModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden" style="z-index: 1000;">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirm Deletion</h3>
+                <p class="text-sm text-gray-500 mb-4">Are you sure you want to delete this rule? This action cannot be
+                    undone.</p>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelDelete"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Cancel
+                    </button>
+                    <button type="button" id="confirmDelete"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this modal for sample review -->
+    <div id="sampleReviewModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden" style="z-index: 1000;">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Review Generated Sample</h3>
+                <div class="mb-6">
+                    <p class="text-base text-gray-700 mb-4" id="sampleText"></p>
+                    <p class="text-sm text-gray-500">Should this sample trigger an alert?</p>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="discardSample"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Discard
+                    </button>
+                    <button type="button" id="noTriggerSample"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Don't Trigger
+                    </button>
+                    <button type="button" id="triggerSample"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Trigger Alert
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden" style="z-index: 1000;">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Settings</h3>
+                    <button id="closeSettings" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="py-4">
+                    <div class="flex items-center">
+                        <label class="flex items-center cursor-pointer">
+                            <div class="relative">
+                                <input type="checkbox" id="advancedSettings" class="sr-only">
+                                <div class="block bg-gray-200 w-14 h-8 rounded-full transition"></div>
+                                <div
+                                    class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-200 ease-in-out">
+                                </div>
+                            </div>
+                            <div class="ml-3 text-gray-700 font-medium">Show advanced settings</div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this right after the opening <div class="container mx-auto px-4 py-8"> -->
+    <div id="loadingSpinner" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden flex items-center justify-center"
+        style="z-index: 1000;">
+        <div class="bg-white p-6 rounded-lg shadow-xl flex items-center space-x-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <p class="text-gray-700">Running tests...</p>
+        </div>
+    </div>
+
+    <!-- Existing Rules -->
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h5 class="text-xl font-semibold text-gray-700">Existing Rules</h5>
+                <span class="text-sm text-gray-600">{{ rules|length }} rule{{ 's' if rules|length != 1 else '' }}</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Name</th>
+                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Description</th>
+                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Tests</th>
+                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-600 pattern-column hidden">
+                                Pattern</th>
+                            <th class="text-right py-3 px-4 text-sm font-medium text-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rule in rules %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-3 px-4 text-sm text-gray-800">{{ rule.name }}</td>
+                            <td class="py-3 px-4 text-sm text-gray-600 max-w-[350px] break-words">{{ rule.explanation }}
+                            </td>
+                            <td class="py-3 px-4 text-sm text-gray-600">{{ rule.samples|length }} test{{ 's' if
+                                rule.samples|length != 1 else '' }}</td>
+                            <td class="py-3 px-4 text-sm text-gray-600 pattern-column hidden">{{ rule.pattern }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <button
+                                    class="load-rule inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-emerald-700 bg-emerald-100 hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                                    data-rule-id="{{ rule.id }}">
+                                    Load
+                                </button>
+                                <a href="/admin/improve/{{ rule.id }}"
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    Improve
+                                </a>
+                                <button
+                                    class="delete-rule inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                    data-rule-id="{{ rule.id }}" data-rule-name="{{ rule.name }}">
+                                    Delete
+                                </button>
+                                <button type="button"
+                                    class="download-rule inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 hidden"
+                                    data-rule-id="{{ rule.id }}">
+                                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Download JSON
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Rule -->
+    <div class="bg-white rounded-lg shadow-md hidden" id="createRuleSection">
+        <div class="p-6">
+            <form id="ruleForm" class="space-y-6">
+                <div>
+                    <label for="ruleName" class="block text-sm font-medium text-gray-700 mb-2">Rule Name</label>
+                    <input type="text"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                        id="ruleName" required placeholder="Enter a descriptive name">
+                </div>
+
+                <div id="samples" class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h6 class="text-sm font-medium text-gray-700">Sample Data</h6>
+                        <div class="space-x-2">
+                            <button type="button"
+                                class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                id="testButton">
+                                <svg id="testSpinner" class="animate-spin -ml-1 mr-2 h-4 w-4 hidden"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4">
+                                    </circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                Run Tests
+                            </button>
+                            <button type="button" id="generateSamples"
+                                class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                                <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                Add Tests with AI
+                            </button>
+                            <button type="button" id="addSample"
+                                class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add Test
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="sample-entry">
+                        <div class="flex flex-col space-y-2">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-grow">
+                                    <textarea
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sample-text"
+                                        placeholder="Enter sample text" rows="3"></textarea>
+                                </div>
+                                <div class="flex items-center">
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox"
+                                            class="trigger-alert form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300">
+                                        <span class="ml-2 text-sm text-gray-600">Trigger Alert</span>
+                                    </label>
+                                </div>
+                                <button type="button"
+                                    class="remove-sample inline-flex items-center p-1.5 border border-transparent rounded-full text-red-600 hover:bg-red-100 focus:outline-none">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="flex-grow">
+                                <input type="text"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sample-explanation text-sm"
+                                    placeholder="Explanation (optional)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        id="resetButton">
+                        Close
+                    </button>
+                    <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        id="submitButton">
+                        Generate Rule
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addSampleBtn = document.getElementById('addSample');
+        const samplesContainer = document.getElementById('samples');
+        const ruleForm = document.getElementById('ruleForm');
+        const testResults = document.getElementById('testResults');
+        const ruleNameInput = document.getElementById('ruleName');
+        const submitButton = document.getElementById('submitButton');
+        const testButton = document.getElementById('testButton');
+        const resetButton = document.getElementById('resetButton');
+        let currentRuleId = null;  // Track the currently loaded rule
+
+        function createSampleEntry() {
+            const template = document.querySelector('.sample-entry').cloneNode(true);
+            template.querySelector('.sample-text').value = '';
+            template.querySelector('.trigger-alert').checked = false;
+            template.querySelector('.sample-explanation').value = '';
+            return template;
+        }
+
+        addSampleBtn.addEventListener('click', () => {
+            samplesContainer.appendChild(createSampleEntry());
+        });
+
+        samplesContainer.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-sample')) {
+                const entries = document.querySelectorAll('.sample-entry');
+                if (entries.length > 1) {
+                    e.target.closest('.sample-entry').remove();
+                }
+            }
+        });
+
+        function displayTestResults(results) {
+            updateSampleFieldsWithResults(results);
+
+            // Only reload if this was a form submission (not a test button click)
+            if (results.success && !results.test_only) {
+                location.reload();
+            }
+        }
+
+        function updateSampleFieldsWithResults(results) {
+            const sampleEntries = document.querySelectorAll('.sample-entry');
+            results.test_results.forEach((result, index) => {
+                const entry = sampleEntries[index];
+                if (!entry) return;
+
+                const textArea = entry.querySelector('.sample-text');
+                const container = entry.querySelector('.flex');
+
+                // Remove any existing status elements
+                const existingStatus = entry.querySelector('.status-message');
+                if (existingStatus) existingStatus.remove();
+
+                // Add status message for failed tests
+                if (!result.passed) {
+                    const statusMessage = document.createElement('div');
+                    statusMessage.className = 'status-message text-sm text-red-600 mt-1';
+                    statusMessage.textContent = result.should_trigger
+                        ? "Expected to trigger an alert, but didn't match the pattern"
+                        : "Expected not to trigger an alert, but matched the pattern";
+                    container.parentNode.appendChild(statusMessage);
+                }
+
+                // Update textarea styling
+                textArea.className = `w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-offset-2 sample-text ${result.passed
+                    ? 'border-green-300 bg-green-50 focus:ring-green-500 focus:border-green-500'
+                    : 'border-red-300 bg-red-50 focus:ring-red-500 focus:border-red-500'
+                    }`;
+            });
+        }
+
+        async function testCurrentRule() {
+            const testButton = document.getElementById('testButton');
+            const testSpinner = document.getElementById('testSpinner');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            // Disable button and show spinners
+            testButton.disabled = true;
+            testButton.classList.add('opacity-50', 'cursor-not-allowed');
+            testSpinner.classList.remove('hidden');
+            loadingSpinner.classList.remove('hidden');
+
+            try {
+                const samples = Array.from(document.querySelectorAll('.sample-entry')).map(entry => ({
+                    text: entry.querySelector('.sample-text').value,
+                    trigger_alert: entry.querySelector('.trigger-alert').checked,
+                    explanation: entry.querySelector('.sample-explanation').value
+                }));
+
+                let url;
+                if (currentRuleId) {
+                    url = `/admin/api/rules/${currentRuleId}/test`;
+                } else {
+                    url = '/admin/api/rules';
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: ruleNameInput.value,
+                        samples: samples
+                    })
+                });
+
+                const data = await response.json();
+                // Mark this as a test-only operation
+                data.test_only = true;
+                displayTestResults(data);
+            } catch (error) {
+                console.error('Error running tests:', error);
+                alert('Failed to run tests');
+            } finally {
+                // Re-enable button and hide spinners
+                testButton.disabled = false;
+                testButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                testSpinner.classList.add('hidden');
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        // Add load rule functionality
+        document.querySelectorAll('.load-rule').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const ruleId = btn.dataset.ruleId;
+                currentRuleId = ruleId;  // Store the loaded rule ID
+
+                await loadRule(ruleId);
+            });
+        });
+
+        // Reset form function
+        function resetForm() {
+            ruleForm.reset();
+            const sampleEntries = document.querySelectorAll('.sample-entry');
+            sampleEntries.forEach((entry, index) => {
+                if (index > 0) entry.remove();
+            });
+            submitButton.textContent = 'Generate Rule';
+            currentRuleId = null;
+
+            // Hide both sections when resetting
+            document.getElementById('ruleDetailsSection').classList.add('hidden');
+            document.getElementById('createRuleSection').classList.add('hidden');
+
+            // Reset all input styling
+            document.querySelectorAll('.sample-text').forEach(input => {
+                input.className = 'w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sample-text';
+            });
+
+            // Remove any status messages
+            document.querySelectorAll('.status-message').forEach(msg => msg.remove());
+        }
+
+        // Replace the reset button creation with direct event listener
+        resetButton.addEventListener('click', resetForm);
+
+        // Add test button handler
+        testButton.addEventListener('click', testCurrentRule);
+
+        ruleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const samples = Array.from(document.querySelectorAll('.sample-entry')).map(entry => ({
+                text: entry.querySelector('.sample-text').value,
+                trigger_alert: entry.querySelector('.trigger-alert').checked,
+                explanation: entry.querySelector('.sample-explanation').value
+            }));
+
+            // If ruleName is empty, it's a test only
+            const isTestOnly = !ruleNameInput.value;
+            let url = isTestOnly ? '/admin/api/rules/test' : '/admin/api/rules';
+
+            // If we're editing an existing rule, use the update endpoint
+            if (currentRuleId && !isTestOnly) {
+                url = `/admin/api/rules/${currentRuleId}`;
+            }
+
+            const response = await fetch(url, {
+                method: currentRuleId && !isTestOnly ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: ruleNameInput.value,
+                    samples: samples
+                })
+            });
+
+            const data = await response.json();
+            displayTestResults(data);
+        });
+
+        // Delete rule functionality
+        const modal = document.getElementById('confirmationModal');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const confirmDelete = document.getElementById('confirmDelete');
+        let ruleToDelete = null;
+
+        function showModal() {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideModal() {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+            ruleToDelete = null;
+        }
+
+        document.querySelectorAll('.delete-rule').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ruleToDelete = {
+                    id: btn.dataset.ruleId,
+                    name: btn.dataset.ruleName
+                };
+                const modalTitle = modal.querySelector('h3');
+                modalTitle.textContent = `Delete Rule: ${ruleToDelete.name}`;
+                showModal();
+            });
+        });
+
+        cancelDelete.addEventListener('click', hideModal);
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                hideModal();
+            }
+        });
+
+        confirmDelete.addEventListener('click', async () => {
+            if (!ruleToDelete) return;
+
+            try {
+                const response = await fetch(`/admin/api/rules/${ruleToDelete.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    // Reload the page to show updated list
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Failed to delete rule');
+                }
+            } catch (error) {
+                console.error('Error deleting rule:', error);
+                alert('Failed to delete rule');
+            } finally {
+                hideModal();
+            }
+        });
+
+        // Sample generation functionality
+        const generateSamplesBtn = document.getElementById('generateSamples');
+        const sampleReviewModal = document.getElementById('sampleReviewModal');
+        const sampleText = document.getElementById('sampleText');
+        const discardSampleBtn = document.getElementById('discardSample');
+        const noTriggerSampleBtn = document.getElementById('noTriggerSample');
+        const triggerSampleBtn = document.getElementById('triggerSample');
+
+        let generatedSamples = [];
+        let currentSampleIndex = 0;
+
+        function showSampleReviewModal(sample) {
+            sampleText.textContent = sample;
+            sampleReviewModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideSampleReviewModal() {
+            sampleReviewModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function addSampleToForm(text, shouldTrigger) {
+            const entry = createSampleEntry();
+            entry.querySelector('.sample-text').value = text;
+            entry.querySelector('.trigger-alert').checked = shouldTrigger;
+            samplesContainer.appendChild(entry);
+        }
+
+        function showNextSample() {
+            if (currentSampleIndex < generatedSamples.length) {
+                showSampleReviewModal(generatedSamples[currentSampleIndex]);
+            } else {
+                hideSampleReviewModal();
+            }
+        }
+
+        generateSamplesBtn.addEventListener('click', async () => {
+            if (!ruleNameInput.value) {
+                alert('Please enter a rule name first to generate relevant samples.');
+                return;
+            }
+
+            try {
+                // If we have a current rule, use its ID
+                let url = currentRuleId
+                    ? `/admin/api/rules/${currentRuleId}/generate-samples`
+                    : '/admin/api/rules/generate-samples';
+
+                // Get existing samples
+                const existingSamples = Array.from(document.querySelectorAll('.sample-entry')).map(entry => ({
+                    text: entry.querySelector('.sample-text').value,
+                    trigger_alert: entry.querySelector('.trigger-alert').checked
+                }));
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: ruleNameInput.value,
+                        samples: existingSamples
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                generatedSamples = data.samples;
+                currentSampleIndex = 0;
+                showNextSample();
+            } catch (error) {
+                console.error('Error generating samples:', error);
+                alert('Failed to generate samples');
+            }
+        });
+
+        // Sample review handlers
+        discardSampleBtn.addEventListener('click', () => {
+            currentSampleIndex++;
+            showNextSample();
+        });
+
+        noTriggerSampleBtn.addEventListener('click', () => {
+            addSampleToForm(generatedSamples[currentSampleIndex], false);
+            currentSampleIndex++;
+            showNextSample();
+        });
+
+        triggerSampleBtn.addEventListener('click', () => {
+            addSampleToForm(generatedSamples[currentSampleIndex], true);
+            currentSampleIndex++;
+            showNextSample();
+        });
+
+        // Close modal when clicking outside
+        sampleReviewModal.addEventListener('click', (e) => {
+            if (e.target === sampleReviewModal) {
+                hideSampleReviewModal();
+            }
+        });
+
+        async function loadRule(ruleId) {
+            try {
+                const response = await fetch(`/admin/api/rules/${ruleId}/load`);
+                const rule = await response.json();
+
+                // Show only the create rule section
+                document.getElementById('createRuleSection').classList.remove('hidden');
+
+                // Clear existing samples
+                const sampleEntries = document.querySelectorAll('.sample-entry');
+                sampleEntries.forEach((entry, index) => {
+                    if (index > 0) entry.remove();
+                });
+
+                // Set rule name
+                ruleNameInput.value = rule.name;
+
+                // Reset any existing test result styling
+                const firstEntry = document.querySelector('.sample-entry');
+                // Reset the first entry's styling
+                if (firstEntry) {
+                    firstEntry.querySelector('.sample-text').className =
+                        'w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sample-text';
+                    // Remove any status messages
+                    const statusMsg = firstEntry.querySelector('.status-message');
+                    if (statusMsg) statusMsg.remove();
+                }
+
+                // Load first sample into existing sample entry
+                if (rule.samples.length > 0) {
+                    firstEntry.querySelector('.sample-text').value = rule.samples[0].text;
+                    firstEntry.querySelector('.trigger-alert').checked = rule.samples[0].trigger_alert;
+                    firstEntry.querySelector('.sample-explanation').value = rule.samples[0].explanation || '';
+                }
+
+                // Add remaining samples
+                for (let i = 1; i < rule.samples.length; i++) {
+                    const sample = rule.samples[i];
+                    const entry = createSampleEntry();
+                    entry.querySelector('.sample-text').value = sample.text;
+                    entry.querySelector('.trigger-alert').checked = sample.trigger_alert;
+                    entry.querySelector('.sample-explanation').value = sample.explanation || '';
+                    samplesContainer.appendChild(entry);
+                }
+
+                // Change button text to "Save Changes"
+                submitButton.textContent = 'Save Changes';
+            } catch (error) {
+                console.error('Error loading rule:', error);
+                alert('Failed to load rule');
+            }
+        }
+
+        // Add click handlers for download buttons
+        document.querySelectorAll('.download-rule').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const ruleId = btn.dataset.ruleId;
+                try {
+                    const response = await fetch(`/admin/api/rules/${ruleId}/download`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert(data.message);
+                    } else {
+                        alert('Failed to download rule');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to download rule');
+                }
+            });
+        });
+
+        // Settings functionality
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettings = document.getElementById('closeSettings');
+        const advancedSettings = document.getElementById('advancedSettings');
+
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeSettings.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        });
+
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Toggle advanced settings
+        advancedSettings.addEventListener('change', (e) => {
+            const patternColumns = document.querySelectorAll('.pattern-column');
+            const downloadButtons = document.querySelectorAll('.download-rule');
+
+            patternColumns.forEach(col => {
+                col.classList.toggle('hidden', !e.target.checked);
+            });
+
+            downloadButtons.forEach(btn => {
+                btn.classList.toggle('hidden', !e.target.checked);
+            });
+        });
+
+        // Add styles for the toggle switch
+        const style = document.createElement('style');
+        style.textContent = `
+            input:checked ~ .dot {
+                transform: translateX(1.5rem);
+            }
+            input:checked ~ .block {
+                background-color: #4F46E5;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Add restart server functionality
+        document.getElementById('restartBtn').addEventListener('click', async () => {
+            try {
+                const button = document.getElementById('restartBtn');
+                const icon = button.querySelector('svg');
+
+                // Disable button and add spin animation to icon
+                button.disabled = true;
+                icon.classList.add('animate-spin');
+
+                const response = await fetch('/admin/reload', {
+                    method: 'POST',
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    console.error('Error restarting server:', data.error);
+                }
+            } catch (error) {
+                console.error('Error restarting server:', error);
+            } finally {
+                // Reset button state
+                const button = document.getElementById('restartBtn');
+                const icon = button.querySelector('svg');
+                button.disabled = false;
+                icon.classList.remove('animate-spin');
+            }
+        });
+    });
+</script>
+{% endblock %}
