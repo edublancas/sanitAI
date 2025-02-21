@@ -42,7 +42,8 @@ Login:
 - Password: admin123
 
 
-Run a sample script that makes an API call, open a new terminal and execute:
+You can test it in the `Playground` tab. Alternatively, you can run the `sample.py`
+script:
 
 ```sh
 export OPENAI_API_KEY=SOME-OPENAI-KEY
