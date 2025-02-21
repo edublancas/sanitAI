@@ -30,7 +30,7 @@
 
 <script>
     const ruleId = {{ rule_id }};
-    const ws = new WebSocket(`ws://${window.location.host}/improve/ws/${ruleId}`);
+    const ws = new WebSocket(`ws://${window.location.host}/admin/improve/ws/${ruleId}`);
     const messagesDiv = document.getElementById('messages');
     const statusDiv = document.getElementById('status');
     const inputField = document.getElementById('input');

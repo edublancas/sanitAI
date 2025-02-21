@@ -382,7 +382,7 @@ def improve(rule_id):
     return render_template("improve.html", rule_id=rule_id)
 
 
-@sock.route("/improve/ws/<int:rule_id>")
+@sock.route("/admin/improve/ws/<int:rule_id>")
 @login_required
 def improve_websocket(ws, rule_id):
     """WebSocket endpoint for improve workflow."""
