@@ -412,14 +412,14 @@ def improve_websocket(ws, rule_id):
 
         # Run the improve workflow
         try:
-            improved_rule, explanation, test_cases = improve_workflow(
+            improved_rule, explanation, test_cases, name = improve_workflow(
                 rule_data, dialog, verbose=True
             )
 
             # Update the rule with improved pattern and explanation
             rule.pattern = improved_rule
             rule.explanation = explanation
-
+            rule.name = name
             # Delete old test cases
             for sample in rule.samples:
                 session.delete(sample)

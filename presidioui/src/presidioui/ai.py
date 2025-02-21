@@ -1006,6 +1006,10 @@ Use natural language, without making any references to the regex syntax.
 
 The new regex pattern to use for the rule.
 
+## name
+
+An identifier for the entity that the rule is detecting. This should be a single word or short phrase. For example: EMAIL_ADDRESS, US_SOCIAL_SECURITY_NUMBER, US_BANK_NUMBER, etc.
+
 ## test_cases_suggested
 
 A list of test cases that could be added. They should be aimed to test the new rule.
@@ -1106,7 +1110,7 @@ Overall passing: {{ "%.1f"|format(pct_passed) }}%
         )
 
     test_cases_combined = combine_test_cases(rule_data, response_parsed)
-    _, pct_passed, _, _ = run_tests(rule, test_cases_combined)
+    _, pct_passed, _, _ = run_tests(response_parsed.rule, test_cases_combined)
     all_tests_passed = pct_passed == 100.0
 
     if all_tests_passed:
@@ -1121,6 +1125,7 @@ Overall passing: {{ "%.1f"|format(pct_passed) }}%
         response_parsed.rule,
         response_parsed.explanation,
         test_cases_combined,
+        response_parsed.name,
     )
 
 
@@ -1245,9 +1250,10 @@ def improve_workflow(rule_data: dict, dialog: DialogProtocol, verbose: bool):
         # modify rule, modify test cases to match the new rule
         # i.e. make the rule more specific or more general
         elif next_action == "MODIFY_RULE":
-            all_tests_passed, rule, explanation, test_cases = modify_rule(
+            all_tests_passed, rule, explanation, test_cases, name = modify_rule(
                 dialog, rule_data, user_prompt
             )
+            rule_data["name"] = name
         # modify the rule, keep test cases the same
         # i.e. make the rule pass the new test cases
         elif next_action == "RUN_FIXER":
@@ -1266,6 +1272,12 @@ def improve_workflow(rule_data: dict, dialog: DialogProtocol, verbose: bool):
             # invalid action
             raise ValueError(f"Invalid action: {next_action}")
 
+
+        # update the rule data
+        rule_data["rule"] = rule
+        rule_data["explanation"] = explanation
+        rule_data["test_cases"] = test_cases
+
         # TODO: maybe add a deterministic action that shows the test cases
         # and ask the user to manually review them
 
@@ -1274,7 +1286,7 @@ def improve_workflow(rule_data: dict, dialog: DialogProtocol, verbose: bool):
         if all_tests_passed:
             done = True
 
-    return rule, explanation, test_cases
+    return rule, explanation, test_cases, rule_data["name"]
 
 
 def combine_test_cases(rule_data: dict, changes: RuleImprovement):
@@ -1342,7 +1354,10 @@ def suggest_next_action(
     rule = rule_data["rule"]
     test_cases = rule_data["test_cases"]
     explanation = rule_data["explanation"]
+
+    dialog.set_as_loading()
     results, pct_passed, _, _ = run_tests(rule, test_cases, dialog)
+
 
     system_prompt = create_template(
         """
@@ -1400,8 +1415,8 @@ Some of the test cases are failing. Do you want to run the fixer to fix the rule
 
 I detected that the following scenarios are not covered by the test cases:
 
-- [ ] ...
-- [ ] ...
+- ...
+- ...
 
 Do you want to add these scenarios to the test cases?
 
@@ -1409,8 +1424,8 @@ Do you want to add these scenarios to the test cases?
 
 I detected that the following scenarios are not covered by the rule:
 
-- [ ] ...
-- [ ] ...
+- ...
+- ...
 
 Do you want to modify the rule to account for these scenarios?
 

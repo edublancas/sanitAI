@@ -71,7 +71,7 @@ class ModifyRuleResponse(BaseModel):
     rule: str
     test_cases_suggested: list[TestCaseCandidate]
     test_cases_removed: list[TestCaseCandidateRemoved]
-
+    name: str
 
 class NextActionResponse(BaseModel):
     action: Literal[

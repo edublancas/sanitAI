@@ -26,6 +26,7 @@ cd sanitAI/
 export OPENAI_API_KEY=SOME-OPENAI-KEY
 
 # build the docker image
+# NOTE: if building using ARM (Apple silicon, read the section at the end)
 docker build -t sanitai .
 
 # run
@@ -67,3 +68,9 @@ But the reverse proxy intercepts the request and sends this to OpenAI:
 2. UI to admin and test rules
 3. AI agent to add new rules
 4. AI agent to fix rules
+
+## Running on ARM (Apple silicon)
+
+If you're running on ARM (Apple silicon), uncommend uncomment the line that installs
+[spaCy](https://github.com/explosion/cython-blis/issues/9#issuecomment-522320875) in
+the `Dockerfile`.

@@ -9,7 +9,7 @@ response = client.chat.completions.create(
         {"role": "system", "content": "You are a helpful assistant."},
         {
             "role": "user",
-            "content": "Hello, my card number is 4111-1111-1111-1111. Call me at (123) 456-7890",
+            "content": "Hello, my card number is  4111 1111 1111 1111. Call me at (123) 456-7890",
         },
     ],
 )

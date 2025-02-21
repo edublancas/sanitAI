@@ -8,8 +8,8 @@ docker exec -it presidioui /venvs/appenv/bin/python -m presidioui.models delete
 ## Development
 
 ~~~bash
-conda create --name presidioui python=3.12 -c conda-forge -y
-conda activate presidioui
+conda create --name sanitai python=3.12 -c conda-forge -y
+conda activate sanitai
 pip install -r requirements.txt
 pip install -e presidioui/
 ~~~
