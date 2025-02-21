@@ -14,6 +14,21 @@ What the OpenAI API sees:
 
 > Hello, my card number is `<VISA-CARD>`. Call me at `<US-NUMBER>`
 
+## Screenshots
+
+### Dashboard
+
+![dashboard](images/dashboard.png)
+
+### Playground
+
+
+![playground](images/playground.png)
+
+### Rule creation wizard
+
+![rule creation](images/rule-creation.png)
+
 ## Getting started
 
 
