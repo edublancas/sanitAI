@@ -58,3 +58,11 @@ Then, look at the logs from the server and you'll see that the user sent:
 But the reverse proxy intercepts the request and sends this to OpenAI:
 
 > Hello, my card number is `<VISA-CARD>`. Call me at `<US-NUMBER>`
+
+
+## Features
+
+1. Drop-in reverse proxy for OpenAI (no need to change your code)
+2. UI to admin and test rules
+3. AI agent to add new rules
+4. AI agent to fix rules
