@@ -26,12 +26,12 @@ cd sanitAI/
 export OPENAI_API_KEY=SOME-OPENAI-KEY
 
 # build the docker image
-docker build -t presidioui .
+docker build -t sanitai .
 
 # run
-docker run -p 5001:80 --rm --name presidioui \
+docker run -p 5001:80 --rm --name sanitai \
 -e OPENAI_API_KEY=$OPENAI_API_KEY \
-  presidioui
+sanitai
 ```
 
 Then, open: `http://localhost:5001/admin/`
