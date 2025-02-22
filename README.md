@@ -14,6 +14,12 @@ What the OpenAI API sees:
 
 > Hello, my card number is `<VISA-CARD>`. Call me at `<US-NUMBER>`
 
+## Video tutorials
+
+1. [Introduction + adding a new rule](https://youtu.be/bdA7T6Z6YQ4)
+2. [Improving a rule with the AI agent](https://youtu.be/Pi3P_qiIfzE)
+3. [Using SanitAI with the OpenAI Python package](https://youtu.be/y40lB_SAuew)
+
 ## Screenshots
 
 ### Dashboard
