@@ -118,3 +118,9 @@ print(response.choices[0].message.content)
 If you're running on ARM (Apple silicon), uncommend uncomment the line that installs
 [spaCy](https://github.com/explosion/cython-blis/issues/9#issuecomment-522320875) in
 the `Dockerfile`.
+
+
+## Deployment
+
+You can deploy this to any platform that supports containerized applications (e.g.,
+[Ploomber Cloud](https://ploomber.io/))
