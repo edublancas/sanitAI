@@ -14,6 +14,14 @@ What the OpenAI API sees:
 
 > Hello, my card number is `<VISA-CARD>`. Call me at `<US-NUMBER>`
 
+1. [Video tutorials](#video-tutorials)
+2. [Screenshots](#screenshots)
+3. [Getting started](#getting-started)
+4. [Deployment](#deployment)
+5. [Features](#features)
+6. [Running on ARM/Apple silicon](#running-on-arm-apple-silicon)
+
+
 ## Video tutorials
 
 1. [Introduction + adding a new rule](https://youtu.be/bdA7T6Z6YQ4)
@@ -106,6 +114,14 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
+
+## Deployment
+
+You can deploy this to any platform that supports containerized applications (e.g.
+[Ploomber Cloud](https://ploomber.io/)). The app runs on a single container (see the `Dockerfile`), and spawns the reverse proxy and the UI via supervisord and NGINX.
+
+If you're looking for enterprise support, [contact me](https://github.com/edublancas).
+
 ## Features
 
 1. Drop-in reverse proxy for OpenAI (no need to change your code)
@@ -118,9 +134,3 @@ print(response.choices[0].message.content)
 If you're running on ARM (Apple silicon), uncommend uncomment the line that installs
 [spaCy](https://github.com/explosion/cython-blis/issues/9#issuecomment-522320875) in
 the `Dockerfile`.
-
-
-## Deployment
-
-You can deploy this to any platform that supports containerized applications (e.g.,
-[Ploomber Cloud](https://ploomber.io/))
