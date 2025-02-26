@@ -4,7 +4,7 @@ A secure middleware that sanitizes OpenAI API traffic by:
 
 - Automatically detecting and removing Personal Identifiable Information (PII)
 - Preserving message context and meaning
-- Operating as a drop-in reverse proxy for existing OpenAI integrations
+- Operating as a drop-in proxy for existing OpenAI integrations
 
 What your user sends:
 
@@ -86,7 +86,7 @@ Then, look at the logs from the server and you'll see that the user sent:
 
 > Hello, my card number is 4111-1111-1111-1111. Call me at (123) 456-7890
 
-But the reverse proxy intercepts the request and sends this to OpenAI:
+But the proxy intercepts the request and sends this to OpenAI:
 
 > Hello, my card number is `<VISA-CARD>`. Call me at `<US-NUMBER>`
 
@@ -97,7 +97,7 @@ This is the source code for `example.py`:
 from openai import OpenAI
 
 
-# point to the reverse proxy
+# point to the proxy
 client = OpenAI(base_url="http://localhost:5001/proxy/v1")
 
 response = client.chat.completions.create(
@@ -118,13 +118,13 @@ print(response.choices[0].message.content)
 ## Deployment
 
 You can deploy this to any platform that supports containerized applications (e.g.
-[Ploomber Cloud](https://ploomber.io/)). The app runs on a single container (see the `Dockerfile`), and spawns the reverse proxy and the UI via supervisord and NGINX.
+[Ploomber Cloud](https://ploomber.io/)). The app runs on a single container (see the `Dockerfile`), and spawns the proxy and the UI via supervisord and NGINX.
 
 If you're looking for enterprise support, [contact me](https://github.com/edublancas).
 
 ## Features
 
-1. Drop-in reverse proxy for OpenAI (no need to change your code)
+1. Drop-in proxy for OpenAI (no need to change your code)
 2. UI to admin and test rules
 3. AI agent to add new rules
 4. AI agent to fix rules
